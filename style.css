@@ -1,0 +1,419 @@
+/* 声明文档字符编码为UTF-8，确保中文等字符正常显示 */
+@charset "UTF-8";
+
+/* 引入自定义字体 "Mona Sans"，支持字体粗细变化（100-1000）
+   - 作用：统一页面字体风格，支持动态调整字重
+   - 修改建议：替换url可更换字体；调整font-weight范围限制可用字重 */
+@font-face {
+  font-family: "Mona Sans";
+  src: url("https://assets.codepen.io/64/Mona-Sans.woff2") format("woff2 supports variations"), 
+       url("https://assets.codepen.io/64/Mona-Sans.woff2") format("woff2-variations");
+  font-weight: 100 1000; /* 支持100到1000的字重范围 */
+}
+
+/* 注册CSS自定义属性（变量），使其支持动画和过渡效果
+   - 作用：让变量可被动画驱动，实现平滑的视觉变化（如色调渐变、旋转角度变化）
+   - 每个@property定义变量的语法规则、是否继承、初始值 */
+@property --hue {
+  syntax: "<number>"; /* 变量类型为数字（用于色调值） */
+  inherits: true; /* 允许子元素继承该变量 */
+  initial-value: 0; /* 初始值为0 */
+}
+@property --rotate {
+  syntax: "<number>"; /* 用于旋转角度计算 */
+  inherits: true;
+  initial-value: 0;
+}
+@property --bg-y {
+  syntax: "<number>"; /* 用于背景光斑Y轴位置 */
+  inherits: true;
+  initial-value: 0;
+}
+@property --bg-x {
+  syntax: "<number>"; /* 用于背景光斑X轴位置 */
+  inherits: true;
+  initial-value: 0;
+}
+@property --glow-translate-y {
+  syntax: "<number>"; /* 用于发光元素Y轴位移 */
+  inherits: true;
+  initial-value: 0;
+}
+@property --bg-size {
+  syntax: "<number>"; /* 用于背景光斑大小缩放 */
+  inherits: true;
+  initial-value: 0;
+}
+@property --glow-opacity {
+  syntax: "<number>"; /* 用于发光效果透明度 */
+  inherits: true;
+  initial-value: 0;
+}
+@property --glow-blur {
+  syntax: "<number>"; /* 用于发光效果模糊度 */
+  inherits: true;
+  initial-value: 0;
+}
+@property --glow-scale {
+  syntax: "<number>"; /* 用于发光效果缩放比例 */
+  inherits: true;
+  initial-value: 2;
+}
+@property --glow-radius {
+  syntax: "<number>"; /* 用于发光元素圆角 */
+  inherits: true;
+  initial-value: 2;
+}
+@property --white-shadow {
+  syntax: "<number>"; /* 用于卡片白色阴影强度 */
+  inherits: true;
+  initial-value: 0;
+}
+
+/* :root 伪类定义全局CSS变量，作用于整个页面
+   - 作用：集中管理可复用样式值（如颜色、尺寸、动画参数），方便统一修改
+   - 修改建议：调整变量值可全局改变视觉效果，无需逐个修改样式 */
+:root {
+  --debug: 0; /* 调试开关：1显示元素边框，0隐藏（用于开发调试） */
+  --supported: 1; /* CSS特性支持提示显示控制（内部逻辑使用） */
+  --not-supported: 0; /* CSS特性不支持提示显示控制（内部逻辑使用） */
+  --card-color: hsl(260deg 100% 3%); /* 卡片主体背景色（深紫色调） */
+  --text-color: hsl(260deg 10% 55%); /* 卡片文本默认颜色（浅紫色调） */
+  --card-radius: 3.6vw; /* 卡片圆角大小（基于视窗宽度的动态值） */
+  --card-width: 35vw; /* 卡片宽度（基于视窗宽度，响应式调整） */
+  --border-width: 3px; /* 卡片边框宽度（影响内阴影范围） */
+  --bg-size: 1; /* 背景光斑初始缩放比例 */
+  --hue: 0; /* 初始色调值（0-360对应色轮） */
+  --hue-speed: 1; /* 色调变化速度因子（值越大变化越快） */
+  --rotate: 0; /* 初始旋转角度值 */
+  --animation-speed: 4s; /* 全局动画周期（值越小动画越快） */
+  --interaction-speed: 0.55s; /* 交互过渡时间（悬停/离开的动画时长） */
+  --glow-scale: 2; /* 发光效果默认缩放比例 */
+  --scale-factor: 1; /* 发光效果额外缩放因子 */
+  --glow-blur: 6; /* 发光效果默认模糊度（值越大越模糊） */
+  --glow-opacity: 1; /* 发光效果默认透明度（0-1，1完全不透明） */
+  --glow-radius: 100; /* 发光元素默认圆角（值越大越接近圆形） */
+  --glow-rotate-unit: 1deg; /* 旋转角度单位（1deg表示1度） */
+}
+
+/* body伪元素：用于显示CSS.registerProperty特性支持状态提示
+   - 作用：开发时提示浏览器是否支持自定义属性动画
+   - 修改建议：删除"display: none !important"可显示提示；调整background修改提示颜色 */
+body::before,
+body::after {
+  content: "CSS.registerProperty is supported ✅"; /* 支持时显示的文本 */
+  position: absolute; /* 绝对定位在页面顶部 */
+  display: block;
+  top: 8px;
+  left: 0;
+  right: 0;
+  margin: auto;
+  width: calc(100% - 160px); /* 宽度自适应，左右留边距 */
+  max-width: 380px; /* 最大宽度限制 */
+  height: auto;
+  padding: 8px;
+  border-radius: 8px;
+  background: #48b93c; /* 支持时的背景色（绿色） */
+  color: white;
+  text-align: center;
+  font-family: sans-serif;
+  z-index: var(--supported, 0); /* 支持时显示层级 */
+  opacity: var(--supported, 0); /* 支持时显示透明度 */
+}
+
+/* body::after：特性不支持时的提示样式
+   - 作用：与before互斥，不支持时显示红色提示 */
+body::after {
+  content: "CSS.registerProperty is NOT supported ❌"; /* 不支持时显示的文本 */
+  background: #b93c3c; /* 不支持时的背景色（红色） */
+  z-index: var(--not-supported, 0); /* 不支持时显示层级 */
+  opacity: var(--not-supported, 0); /* 不支持时显示透明度 */
+}
+
+/* 强制隐藏支持提示（实际使用中不需要显示） */
+body::before,
+body::after {
+  display: none !important;
+}
+
+/* 基础样式：设置html和body占满屏幕
+   - 作用：确保页面无默认边距，内容充满视窗
+   - 修改建议：如需页面有滚动条，可删除height: 100% */
+html,
+body {
+  height: 100%; /* 高度占满视窗 */
+  width: 100%; /* 宽度占满视窗 */
+  padding: 0; /* 清除默认内边距 */
+  margin: 0; /* 清除默认外边距 */
+}
+
+/* 全局调试边框：所有元素添加虚线边框（仅当--debug=1时生效）
+   - 作用：开发时可视化元素边界，便于调试布局
+   - 修改建议：将--debug改为1可显示边框，辅助调整元素位置 */
+*,
+*:before,
+*:after {
+  outline: calc(var(--debug) * 1px) red dashed; /* 基于--debug变量控制是否显示 */
+}
+
+/* body样式：页面整体布局和背景
+   - 作用：设置页面背景色，使用flex布局使卡片居中
+   - 修改建议：修改--card-color可改变页面背景；调整justify-content/align-items改变居中方式 */
+body {
+  background-color: var(--card-color); /* 继承卡片主体色作为页面背景 */
+  display: flex; /* 启用flex布局 */
+  align-items: center; /* 垂直居中 */
+  justify-content: center; /* 水平居中 */
+  font-family: "Mona Sans", sans-serif; /* 使用引入的自定义字体 */
+}
+
+/* 卡片容器：核心交互元素的外层容器
+   - 作用：定义卡片尺寸、比例、圆角，作为所有子元素的定位父级
+   - 修改建议：调整--card-width改变卡片宽度；修改aspect-ratio改变宽高比（如1/1为正方形） */
+body > div {
+  width: var(--card-width); /* 基础宽度（响应式） */
+  width: min(480px, var(--card-width)); /* 最大宽度限制为480px，避免过大 */
+  aspect-ratio: 1.5/1; /* 宽高比1.5:1（宽度是高度的1.5倍） */
+  color: white;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative; /* 作为子元素的定位参考 */
+  z-index: 2; /* 堆叠层级，确保在背景之上 */
+  border-radius: var(--card-radius); /* 使用全局圆角变量 */
+  cursor: pointer; /* 鼠标悬停时显示指针，提示可交互 */
+}
+
+/* 卡片容器hover状态：卡片内容区域的变化
+   - 作用：鼠标悬停时改变卡片内容的阴影、文本颜色等
+   - 修改建议：调整--text-color可改变悬停时文本色；修改shadow-pulse动画参数改变阴影闪烁频率 */
+body > div:hover > div {
+  mix-blend-mode: darken; /* 混合模式：加深与背景的对比 mix-blend-mode: normal;*/
+  --text-color: rgb(255, 255, 255); /* 悬停时文本改为白色 */
+  /* 白色阴影效果，强度由--white-shadow控制 */
+  
+  box-shadow: 0 0 calc(var(--white-shadow) * 1vw) calc(var(--white-shadow) * 0.15vw) rgba(255, 255, 255, 0.2);
+  animation: shadow-pulse calc(var(--animation-speed) * 2) linear infinite; /* 阴影脉冲动画 */
+}
+
+/* 卡片内容伪元素hover状态：背景光斑放大
+   - 作用：悬停时放大背景光斑，增强视觉反馈
+   - 修改建议：调整--bg-size值改变光斑放大程度（值越大光斑越扩散）；修改transition时长改变动画快慢 */
+body > div:hover > div:before {
+  --bg-size: 15; /* 悬停时光斑放大到15倍 */
+  animation-play-state: paused; /* 暂停背景动画，突出静态效果 */
+  transition: --bg-size var(--interaction-speed) ease; /* 光斑大小变化的过渡动画 */
+}
+
+/* 发光元素hover状态：调整发光效果参数
+   - 作用：悬停时改变发光的模糊度、透明度、大小等
+   - 修改建议：增大--glow-scale可让发光范围更广；降低--glow-opacity可让发光更淡 */
+body > div:hover .glow {
+  --glow-blur: 1.5; /* 悬停时模糊度降低（更清晰） */
+  --glow-opacity: 0.6; /* 悬停时发光透明度降低（更淡） */
+  --glow-scale: 2.5; /* 悬停时发光缩放比例增大（范围更广） */
+  --glow-radius: 0; /* 悬停时发光元素圆角变为0（方形） */
+  --rotate: 900; /* 悬停时旋转角度固定值 */
+  --glow-rotate-unit: 0; /* 悬停时停止旋转（单位设为0） */
+  --scale-factor: 1.25; /* 额外缩放因子，增强放大效果 */
+  animation-play-state: paused; /* 暂停发光元素的旋转动画 */
+}
+
+/* 发光伪元素hover状态：调整位移和过渡
+   - 作用：悬停时固定发光位置，定义属性变化的过渡规则
+   - 修改建议：调整--glow-translate-y改变发光垂直位置；延长transition时长使变化更平滑 */
+body > div:hover .glow:after {
+  --glow-translate-y: 0; /* 悬停时发光元素Y轴位移归0 */
+  animation-play-state: paused; /* 暂停发光伪元素的动画 */
+  /* 定义多个属性变化的过渡效果（即时长和缓动函数） */
+  transition: --glow-translate-y 0s ease, --glow-blur 0.05s ease, --glow-opacity 0.05s ease, --glow-scale 0.05s ease, --glow-radius 0.05s ease;
+}
+
+/* 卡片容器的前后伪元素：预留装饰层
+   - 作用：可用于添加边框、额外阴影或叠加层（当前未定义具体样式）
+   - 修改建议：添加background可设置边框色；添加box-shadow可增强立体效果 */
+body > div:before, body > div:after {
+  content: ""; /* 伪元素必须设置content才会显示 */
+  display: block;
+  position: absolute; /* 覆盖整个卡片 */
+  width: 100%;
+  height: 100%;
+  border-radius: var(--card-radius); /* 与卡片圆角一致 */
+}
+
+/* 卡片内容区域：显示文本的核心区域
+   - 作用：定义卡片内部内容的布局、背景、文本样式
+   - 修改建议：调整border-radius改变内框圆角；修改font-size调整文本大小 */
+body > div > div {
+  position: absolute; /* 绝对定位覆盖卡片 */
+  width: 100%;
+  height: 100%;
+  background: var(--card-color); /* 与卡片背景一致，形成内框效果 */
+  border-radius: calc(calc(var(--card-radius) * 0.9)); /* 内框圆角比外框小10%，形成边框感 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800; /* 文本粗度 */
+  text-transform: uppercase; /* 文本大写 */
+  font-stretch: 120%; /* 文本横向拉伸1.5倍 */
+  font-size: 16px;
+  font-size: clamp(1.2vw, 1.2vmin, 24px); /* 响应式字体：最小1.5vw/vmin，最大32px */
+  color: var(--text-color); /* 文本颜色（默认浅紫，hover时变白） */
+  padding: calc(var(--card-width) / 12); /* 内边距为卡片宽度的1/8 */
+}
+
+/* 卡片内容中的span标签：高亮文本块
+   - 作用：突出显示关键词（如变量名）
+   - 修改建议：调整background可改变高亮背景色；修改color改变文本色 */
+body > div > div span {
+  display: inline-block;
+  padding: 0.25em; /* 内边距为文本尺寸的0.25倍 */
+  border-radius: 2px; /* 小圆角 */
+  background: var(--text-color); /* 背景色继承文本色 */
+  color: black; /* 文本为黑色，与背景对比 */
+  margin-right: 10px; /* 右侧间距 */
+  font-weight: 900; /* 比周围文本更粗 */
+}
+
+/* 内容区域的伪元素：背景光斑和动画
+   - 作用：实现卡片内部的动态光斑效果，随动画改变位置和色调
+   - 修改建议：调整radial-gradient的百分比可改变光斑形状；修改mix-blend-mode改变混合效果 */
+body > div > div:before {
+  
+  content: "";
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: calc(calc(var(--card-radius) * 0.9)); /* 与内框圆角一致 */
+  box-shadow: 0 0 20px black; /* 内部黑影，增强边框感 */
+  mix-blend-mode: color-burn; /* 混合模式：加深颜色对比 */
+  z-index: -1; /* 位于内容下方 */
+  /* 径向渐变背景：随--bg-x/--bg-y改变位置，随--hue改变色调 */
+  background: #292929 radial-gradient(30% 30% at calc(var(--bg-x) * 1%) calc(var(--bg-y) * 1%), 
+    hsl(calc(calc(var(--hue) * var(--hue-speed)) * 1deg), 100%, 90%) calc(0% * var(--bg-size)), 
+    hsl(calc(calc(var(--hue) * var(--hue-speed)) * 1deg), 100%, 80%) calc(20% * var(--bg-size)), 
+    hsl(calc(calc(var(--hue) * var(--hue-speed)) * 1deg), 100%, 60%) calc(40% * var(--bg-size)), 
+    transparent 100%);
+  width: calc(100% + var(--border-width)); /* 宽度比内框大，形成边框效果 */
+  height: calc(100% + var(--border-width)); /* 高度比内框大 */
+  animation: hue-animation var(--animation-speed) linear infinite, /* 色调渐变动画 */
+             rotate-bg var(--animation-speed) linear infinite; /* 光斑位置旋转动画 */
+  transition: --bg-size var(--interaction-speed) ease; /* 光斑大小变化的过渡 */
+}
+
+/* 发光元素容器：旋转动画的载体（"旋转方块"的物理载体）
+   - 作用：定义发光效果的旋转中心和基础尺寸，驱动发光伪元素旋转
+   - 修改建议：调整width/height改变载体大小（影响光斑初始范围）；修改animation-speed改变旋转速度 */
+body > div .glow {
+  display: block;
+  position: absolute;
+  /* 尺寸为卡片宽度的1/5（值越大，载体越大，光斑基础范围越大） */
+  width: calc(var(--card-width) / 7);
+  height: calc(var(--card-width) / 7);
+  animation: rotate var(--animation-speed) linear infinite; /* 应用旋转动画 */
+  transform: rotateZ(calc(var(--rotate) * var(--glow-rotate-unit))); /* 基于变量计算旋转角度 */
+  transform-origin: center; /* 以中心为旋转点 */
+  border-radius: calc(var(--glow-radius) * 10vw); /* 圆角大小（动态计算） */
+}
+
+/* 发光伪元素：实际显示的光斑效果
+   - 作用：通过模糊、缩放、透明度实现发光效果，随载体旋转
+   - 修改建议：增大filter: blur值使光斑更模糊；调整scaleX/scaleY改变光斑拉伸方向 */
+body > div .glow:after {
+  content: "";
+  display: block;
+  z-index: -2; /* 位于所有内容下方，避免遮挡 */
+  filter: blur(calc(var(--glow-blur) * 10px)); /* 模糊效果（值越大越模糊） */
+  width: 130%; /* 宽度比载体大30% */
+  height: 130%; /* 高度比载体大30% */
+  left: -15%; /* 左移15%，使中心与载体对齐 */
+  top: -15%; /* 上移15%，使中心与载体对齐 */
+  background: hsl(calc(calc(var(--hue) * var(--hue-speed)) * 1deg), 100%, 60%); /* 背景色随色调变化 */
+  position: relative;
+  border-radius: calc(var(--glow-radius) * 10vw); /* 与载体圆角一致 */
+  animation: hue-animation var(--animation-speed) linear infinite; /* 同步色调动画 */
+  /* 缩放和位移：Y轴缩放稍小，X轴稍大，形成横向拉伸的光斑 */
+  transform: scaleY(calc(var(--glow-scale) * var(--scale-factor) / 1.1)) 
+             scaleX(calc(var(--glow-scale) * var(--scale-factor) * 1.2)) 
+             translateY(calc(var(--glow-translate-y) * 1%));
+  opacity: var(--glow-opacity); /* 透明度由变量控制 */
+}
+
+/* 阴影脉冲动画：控制卡片白色阴影的强度变化
+   - 作用：hover时阴影强度周期性变化，产生呼吸效果
+   - 修改建议：调整关键帧百分比可改变闪烁节奏；增大--white-shadow值可增强阴影强度 */
+@keyframes shadow-pulse {
+  0%, 24%, 46%, 73%, 96% {
+    --white-shadow: 0.5; /* 这些时间点阴影强度为0.5 */
+  }
+  12%, 28%, 41%, 63%, 75%, 82%, 98% {
+    --white-shadow: 2.5; /* 这些时间点阴影强度为2.5 */
+  }
+  6%, 32%, 57% {
+    --white-shadow: 1.3; /* 这些时间点阴影强度为1.3 */
+  }
+  18%, 52%, 88% {
+    --white-shadow: 3.5; /* 这些时间点阴影强度为3.5 */
+  }
+}
+
+/* 背景光斑位置动画：控制--bg-x和--bg-y变量，使光斑沿矩形轨迹移动
+   - 作用：让卡片内部光斑按顺时针方向绕 corners 移动
+   - 修改建议：调整关键帧的--bg-x/--bg-y值可改变轨迹（如圆形、对角线） */
+@keyframes rotate-bg {
+  0% {
+    --bg-x: 0; --bg-y: 0; /* 起点：左上角 */
+  }
+  25% {
+    --bg-x: 100; --bg-y: 0; /* 25%时：右上角 */
+  }
+  50% {
+    --bg-x: 100; --bg-y: 100; /* 50%时：右下角 */
+  }
+  75% {
+    --bg-x: 0; --bg-y: 100; /* 75%时：左下角 */
+  }
+  100% {
+    --bg-x: 0; --bg-y: 0; /* 终点：回到左上角 */
+  }
+}
+
+/* 发光载体旋转动画：控制--rotate和--glow-translate-y变量，使载体旋转
+   - 作用：驱动发光载体360度旋转，同时保持垂直位置
+   - 修改建议：调整--rotate的起始/结束值可改变旋转角度范围；修改--glow-translate-y改变垂直位置 */
+@keyframes rotate {
+  from {
+    --rotate: -70; /* 起始旋转角度 */
+    --glow-translate-y: -65; /* 起始Y轴位移（向上65%） */
+  }
+  25% {
+    --glow-translate-y: -65; /* 25%时保持位移 */
+  }
+  50% {
+    --glow-translate-y: -65; /* 50%时保持位移 */
+  }
+  60%, 75% {
+    --glow-translate-y: -65; /* 60%-75%保持位移 */
+  }
+  85% {
+    --glow-translate-y: -65; /* 85%时保持位移 */
+  }
+  to {
+    --rotate: calc(360 - 70); /* 结束旋转角度（360-70=290度） */
+    --glow-translate-y: -65; /* 结束时保持位移 */
+  }
+}
+
+/* 色调渐变动画：控制--hue变量从0到360，实现颜色循环变化
+   - 作用：让所有依赖--hue的元素（光斑、发光效果）随时间变色
+   - 修改建议：调整100%时的--hue值可改变色轮范围（如180为半色轮）；缩短动画时长加快变色 */
+@keyframes hue-animation {
+  0% {
+    --hue: 0; /* 起始色调（红色） */
+  }
+  100% {
+    --hue: 360; /* 结束色调（回到红色，完成色轮循环） */
+  }
+}
